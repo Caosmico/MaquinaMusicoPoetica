@@ -1,4 +1,4 @@
-# 💿 Vinyl Collection Database
+# 💿 Máquina Musicopoética
 
 <div align="center">
 
@@ -24,7 +24,7 @@
 
 ## 📖 Sobre el Proyecto
 
-**Vinyl Collection Database** es una aplicación web para catalogar discos de vinilo que va más allá de un simple inventario. Inspirada en la metodología del historiador de arte **Aby Warburg**, permite identificar **Pathosformeln Musicales** (fórmulas emocionales) que caracterizan cada álbum.
+**Máquina Musicopoética** es una aplicación web para catalogar discos de vinilo que va más allá de un simple inventario. Inspirada en la metodología del historiador de arte **Aby Warburg**, permite identificar **Pathosformel Musicales** (fórmulas emocionales) que caracterizan cada álbum.
 
 ### 🎯 Filosofía del Proyecto
 
