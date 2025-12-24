@@ -2,11 +2,6 @@
 
 <div align="center">
 
-![Vinyl Collection](https://img.shields.io/badge/Vinyl-Collection-purple?style=for-the-badge&logo=apple-music)
-![React](https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react)
-![LocalStorage](https://img.shields.io/badge/Storage-LocalStorage-orange?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyek0xMiAyMGMtNC40MSAwLTgtMy41OS04LThzMy41OS04IDgtOCA4IDMuNTkgOCA4LTMuNTkgOC04IDh6Ii8+PC9zdmc+)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-
 **Una aplicación de catalogación de vinilos inspirada en la metodología Pathosformel de Aby Warburg**
 
 [Demo en Vivo](#-demo) • [Características](#-características) • [Instalación](#-instalación) • [Uso](#-uso)
@@ -15,7 +10,6 @@
 
 ### 🎵 Captura de Pantalla
 
-![Vinyl Collection App](https://via.placeholder.com/800x450/1e1b4b/ffffff?text=Vinyl+Collection+Database)
 *Interfaz principal de la aplicación*
 
 </div>
