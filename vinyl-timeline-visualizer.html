@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador Temporal de Vinilos - Pathosformel</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+
+        // Iconos SVG
+        const Calendar = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        );
+
+        const Music = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+        );
+
+        const X = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        );
+
+        const ArrowLeftRight = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+        );
+
+        const Disc3 = (props) => (
+            <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" strokeWidth={2} />
+                <circle cx="12" cy="12" r="3" strokeWidth={2} />
+            </svg>
+        );
+
+        const VinylTimelineVisualizer = () => {
+            const [vinyls, setVinyls] = useState([]);
+            const [selectedVinyls, setSelectedVinyls] = useState([]);
+            const [viewMode, setViewMode] = useState('timeline');
+            const [timelineRange, setTimelineRange] = useState({ start: 1950, end: 2025 });
+            const [filterPathosformel, setFilterPathosformel] = useState('all');
+            const [filterStyle, setFilterStyle] = useState('all');
+
+            // Cargar vinilos desde LocalStorage
+            useEffect(() => {
+                const loadVinyls = () => {
+                    try {
+                        const data = localStorage.getItem('vinyl_collection');
+                        const loadedVinyls = data ? JSON.parse(data) : [];
+                        const vinylsWithYear = loadedVinyls.filter(v => v.year && !isNaN(parseInt(v.year)));
+                        setVinyls(vinylsWithYear);
+                    } catch (error) {
+                        console.error('Error loading vinyls:', error);
+                        setVinyls([]);
+                    }
+                };
+                
+                loadVinyls();
+                window.addEventListener('storage', loadVinyls);
+                return () => window.removeEventListener('storage', loadVinyls);
+            }, []);
+
+            // Filtrar vinilos
+            const filteredVinyls = useMemo(() => {
+                return vinyls.filter(vinyl => {
+                    const year = parseInt(vinyl.year);
+                    const matchesPathosformel = filterPathosformel === 'all' || vinyl.pathosformel === filterPathosformel;
+                    const matchesStyle = filterStyle === 'all' || (vinyl.style && vinyl.style.toLowerCase().includes(filterStyle.toLowerCase()));
+                    const matchesTimeRange = year >= timelineRange.start && year <= timelineRange.end;
+                    return matchesPathosformel && matchesStyle && matchesTimeRange;
+                });
+            }, [vinyls, filterPathosformel, filterStyle, timelineRange]);
+
+            // Toggle selección
+            const toggleVinyl = (vinyl) => {
+                setSelectedVinyls(prev => {
+                    const exists = prev.find(v => v.id === vinyl.id);
+                    if (exists) {
+                        return prev.filter(v => v.id !== vinyl.id);
+                    }
+                    return [...prev, vinyl];
+                });
+            };
+
+            // Pathosformeln y estilos únicos
+            const uniquePathosformeln = [...new Set(vinyls.map(v => v.pathosformel))].filter(Boolean);
+            const uniqueStyles = [...new Set(vinyls.map(v => v.style))].filter(Boolean);
+
+            // Agrupar por década
+            const vinylsByDecade = useMemo(() => {
+                const decades = {};
+                filteredVinyls.forEach(vinyl => {
+                    const year = parseInt(vinyl.year);
+                    const decade = Math.floor(year / 10) * 10;
+                    if (!decades[decade]) decades[decade] = [];
+                    decades[decade].push(vinyl);
+                });
+                return decades;
+            }, [filteredVinyls]);
+
+            // Vista Timeline
+            const TimelineView = () => (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-purple-600" />
+                                Rango Temporal
+                            </h3>
+                            <div className="text-sm font-medium text-gray-600">
+                                {timelineRange.start} - {timelineRange.end}
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Inicio: {timelineRange.start}
+                                </label>
+                                <input
+                                    type="range"
+                                    min="1950"
+                                    max="2025"
+                                    value={timelineRange.start}
+                                    onChange={(e) => setTimelineRange(prev => ({ ...prev, start: parseInt(e.target.value) }))}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Fin: {timelineRange.end}
+                                </label>
+                                <input
+                                    type="range"
+                                    min="1950"
+                                    max="2025"
+                                    value={timelineRange.end}
+                                    onChange={(e) => setTimelineRange(prev => ({ ...prev, end: parseInt(e.target.value) }))}
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-6">Línea Temporal de Vinilos</h3>
+                        
+                        <div className="space-y-8">
+                            {Object.keys(vinylsByDecade).sort((a, b) => b - a).map(decade => (
+                                <div key={decade} className="border-l-4 border-purple-300 pl-6">
+                                    <h4 className="text-xl font-bold text-purple-600 mb-4">
+                                        {decade}s
+                                        <span className="ml-3 text-sm font-normal text-gray-500">
+                                            ({vinylsByDecade[decade].length} álbumes)
+                                        </span>
+                                    </h4>
+                                    
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {vinylsByDecade[decade].map(vinyl => (
+                                            <div
+                                                key={vinyl.id}
+                                                onClick={() => toggleVinyl(vinyl)}
+                                                className={`cursor-pointer group relative rounded-lg overflow-hidden transition-all ${
+                                                    selectedVinyls.find(v => v.id === vinyl.id)
+                                                        ? 'ring-4 ring-purple-500 scale-105'
+                                                        : 'hover:scale-105'
+                                                }`}
+                                            >
+                                                <div className="aspect-square bg-gray-100">
+                                                    {vinyl.imageUrl ? (
+                                                        <img
+                                                            src={vinyl.imageUrl}
+                                                            alt={vinyl.title}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <Music className="w-16 h-16 text-gray-300" />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                                                        <h5 className="text-white font-bold text-sm line-clamp-1">{vinyl.title}</h5>
+                                                        <p className="text-gray-200 text-xs line-clamp-1">{vinyl.artist}</p>
+                                                        <p className="text-gray-300 text-xs mt-1">{vinyl.year}</p>
+                                                        {vinyl.style && (
+                                                            <span className="inline-block mt-1 px-2 py-0.5 bg-purple-500/80 text-white text-xs rounded">
+                                                                {vinyl.style}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {selectedVinyls.find(v => v.id === vinyl.id) && (
+                                                    <div className="absolute top-2 right-2 w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                                                        <span className="text-white font-bold">✓</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+
+                            {Object.keys(vinylsByDecade).length === 0 && (
+                                <div className="text-center py-12">
+                                    <Disc3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <p className="text-gray-500">No hay vinilos en este rango temporal</p>
+                                    <p className="text-sm text-gray-400 mt-2">
+                                        Ajusta el rango o{' '}
+                                        <a href="vinyl-collection-complete.html" className="text-purple-600 hover:underline">
+                                            añade vinilos a tu colección
+                                        </a>
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Vista Comparativa
+            const ComparisonView = () => (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">
+                            Selecciona vinilos para comparar
+                            <span className="ml-3 text-sm font-normal text-gray-500">
+                                ({selectedVinyls.length} seleccionados)
+                            </span>
+                        </h3>
+
+                        {selectedVinyls.length === 0 ? (
+                            <div className="text-center py-12">
+                                <p className="text-gray-500 mb-4">Selecciona al menos un vinilo de la colección</p>
+                                <button
+                                    onClick={() => setViewMode('timeline')}
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                                >
+                                    Ir a Línea Temporal
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {selectedVinyls.map(vinyl => (
+                                    <div key={vinyl.id} className="bg-gray-50 rounded-xl border-2 border-purple-200 p-4 relative">
+                                        <button
+                                            onClick={() => toggleVinyl(vinyl)}
+                                            className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+
+                                        <div className="aspect-square bg-gray-200 rounded-lg mb-4 overflow-hidden">
+                                            {vinyl.imageUrl ? (
+                                                <img src={vinyl.imageUrl} alt={vinyl.title} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <Music className="w-16 h-16 text-gray-400" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <h4 className="font-bold text-gray-900 mb-1">{vinyl.title}</h4>
+                                        <p className="text-gray-600 text-sm mb-2">{vinyl.artist}</p>
+                                        
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">Año:</span>
+                                                <span className="font-medium">{vinyl.year}</span>
+                                            </div>
+                                            {vinyl.label && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Sello:</span>
+                                                    <span className="font-medium text-xs">{vinyl.label}</span>
+                                                </div>
+                                            )}
+                                            {vinyl.style && (
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Estilo:</span>
+                                                    <span className="font-medium">{vinyl.style}</span>
+                                                </div>
+                                            )}
+                                            <div className="pt-2 border-t border-gray-300">
+                                                <span className="text-xs text-gray-500">Pathosformel:</span>
+                                                <div className="mt-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium text-center">
+                                                    {vinyl.pathosformel}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+
+            // Vista Grid
+            const GridView = () => (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-xl border border-gray-200 p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-6">
+                            Todos los Vinilos
+                            <span className="ml-3 text-sm font-normal text-gray-500">
+                                ({filteredVinyls.length} resultados)
+                            </span>
+                        </h3>
+
+                        {filteredVinyls.length === 0 ? (
+                            <div className="text-center py-12">
+                                <Disc3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <p className="text-gray-500">No se encontraron vinilos con estos filtros</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                                {filteredVinyls.map(vinyl => (
+                                    <div
+                                        key={vinyl.id}
+                                        onClick={() => toggleVinyl(vinyl)}
+                                        className={`cursor-pointer group relative rounded-lg overflow-hidden transition-all ${
+                                            selectedVinyls.find(v => v.id === vinyl.id)
+                                                ? 'ring-4 ring-purple-500'
+                                                : 'hover:scale-105'
+                                        }`}
+                                    >
+                                        <div className="aspect-square bg-gray-100">
+                                            {vinyl.imageUrl ? (
+                                                <img
+                                                    src={vinyl.imageUrl}
+                                                    alt={vinyl.title}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <Music className="w-12 h-12 text-gray-300" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="p-2 bg-white">
+                                            <h5 className="font-bold text-xs line-clamp-1">{vinyl.title}</h5>
+                                            <p className="text-gray-600 text-xs line-clamp-1">{vinyl.artist}</p>
+                                            <p className="text-gray-500 text-xs">{vinyl.year}</p>
+                                        </div>
+
+                                        {selectedVinyls.find(v => v.id === vinyl.id) && (
+                                            <div className="absolute top-2 right-2 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                                                <span className="text-white text-xs font-bold">✓</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen bg-slate-50">
+                    <header className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+                        <div className="max-w-7xl mx-auto px-6 py-8">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Disc3 className="w-10 h-10" />
+                                    <div>
+                                        <h1 className="text-3xl font-bold">Visualizador Temporal de Vinilos</h1>
+                                        <p className="text-purple-100">Análisis Pathosformel Musical - Metodología Warburg</p>
+                                    </div>
+                                </div>
+                                <a
+                                    href="vinyl-collection-complete.html"
+                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-sm font-medium"
+                                >
+                                    ← Volver a Colección
+                                </a>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div className="max-w-7xl mx-auto px-6 py-8">
+                        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Modo de Vista
+                                    </label>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={() => setViewMode('timeline')}
+                                            className={`px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
+                                                viewMode === 'timeline'
+                                                    ? 'bg-purple-600 text-white'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            📅 Línea Temporal
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode('comparison')}
+                                            className={`px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
+                                                viewMode === 'comparison'
+                                                    ? 'bg-purple-600 text-white'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            🔄 Comparación
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode('grid')}
+                                            className={`px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
+                                                viewMode === 'grid'
+                                                    ? 'bg-purple-600 text-white'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            ⊞ Grid
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Pathosformel Musical
+                                    </label>
+                                    <select
+                                        value={filterPathosformel}
+                                        onChange={(e) => setFilterPathosformel(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                    >
+                                        <option value="all">Todos</option>
+                                        {uniquePathosformeln.map(p => (
+                                            <option key={p} value={p}>{p}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Estilo Musical
+                                    </label>
+                                    <select
+                                        value={filterStyle}
+                                        onChange={(e) => setFilterStyle(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                    >
+                                        <option value="all">Todos</option>
+                                        {uniqueStyles.map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Estadísticas
+                                    </label>
+                                    <div className="space-y-2">
+                                        <div className="bg-purple-50 rounded-lg p-2 border border-purple-200">
+                                            <div className="text-xs text-purple-600">Vinilos visibles</div>
+                                            <div className="text-2xl font-bold text-purple-700">{filteredVinyls.length}</div>
+                                        </div>
+                                        <div className="bg-pink-50 rounded-lg p-2 border border-pink-200">
+                                            <div className="text-xs text-pink-600">Seleccionados</div>
+                                            <div className="text-2xl font-bold text-pink-700">{selectedVinyls.length}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {selectedVinyls.length >= 2 && (
+                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200 p-6 mb-6">
+                                <h3 className="text-lg font-bold text-amber-900 mb-4 flex items-center gap-2">
+                                    <ArrowLeftRight className="w-5 h-5" />
+                                    Análisis Warburguiano de Conexiones Musicales
+                                </h3>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-amber-800 mb-3">Pathosformeln Compartidos</h4>
+                                        {(() => {
+                                            const pathosformelnCounts = selectedVinyls.reduce((acc, vinyl) => {
+                                                acc[vinyl.pathosformel] = (acc[vinyl.pathosformel] || 0) + 1;
+                                                return acc;
+                                            }, {});
+
+                                            const shared = Object.entries(pathosformelnCounts).filter(([_, count]) => count > 1);
+                                            
+                                            return shared.length > 0 ? shared.map(([pathos, count]) => (
+                                                <div key={pathos} className="mb-2">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-sm font-medium text-amber-900">{pathos}</span>
+                                                        <span className="text-xs text-amber-600">{count} álbumes</span>
+                                                    </div>
+                                                    <div className="w-full bg-amber-200 rounded-full h-2">
+                                                        <div 
+                                                            className="bg-amber-500 h-2 rounded-full"
+                                                            style={{ width: `${(count / selectedVinyls.length) * 100}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                            )) : (
+                                                <p className="text-sm text-amber-600 italic">No hay Pathosformeln compartidos</p>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-amber-800 mb-3">Extensión Temporal</h4>
+                                        {(() => {
+                                            const years = selectedVinyls.map(v => parseInt(v.year)).sort((a, b) => a - b);
+                                            const minYear = years[0];
+                                            const maxYear = years[years.length - 1];
+                                            const span = maxYear - minYear;
+
+                                            return (
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-amber-700">Más antiguo:</span>
+                                                        <span className="font-bold text-amber-900">{minYear}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-amber-700">Más reciente:</span>
+                                                        <span className="font-bold text-amber-900">{maxYear}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-amber-700">Extensión:</span>
+                                                        <span className="font-bold text-amber-900">{span} años</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-amber-800 mb-3">Estilos Musicales</h4>
+                                        {(() => {
+                                            const styles = selectedVinyls.filter(v => v.style).map(v => v.style);
+                                            const uniqueStyles = [...new Set(styles)];
+                                            
+                                            return uniqueStyles.length > 0 ? (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {uniqueStyles.map(style => (
+                                                        <span key={style} className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs">
+                                                            {style}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-amber-600 italic">Sin estilos definidos</p>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 pt-6 border-t border-amber-200">
+                                    <h4 className="text-sm font-semibold text-amber-800 mb-2">💡 Nachleben Musical Detectado</h4>
+                                    <p className="text-sm text-amber-700">
+                                        {(() => {
+                                            const sharedPathos = Object.entries(
+                                                selectedVinyls.reduce((acc, vinyl) => {
+                                                    acc[vinyl.pathosformel] = (acc[vinyl.pathosformel] || 0) + 1;
+                                                    return acc;
+                                                }, {})
+                                            ).filter(([_, count]) => count > 1);
+
+                                            if (sharedPathos.length > 0) {
+                                                const years = selectedVinyls.map(v => parseInt(v.year));
+                                                const span = Math.max(...years) - Math.min(...years);
+                                                return `Se detecta supervivencia del Pathosformel Musical "${sharedPathos[0][0]}" a través de ${span} años de historia musical.`;
+                                            }
+                                            return 'No se detectan Pathosformeln compartidos entre los álbumes seleccionados.';
+                                        })()}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {viewMode === 'timeline' && <TimelineView />}
+                        {viewMode === 'comparison' && <ComparisonView />}
+                        {viewMode === 'grid' && <GridView />}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<VinylTimelineVisualizer />, document.getElementById('root'));
+    </script>
+</body>
+</html>
